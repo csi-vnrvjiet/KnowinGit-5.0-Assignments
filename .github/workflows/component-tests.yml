@@ -5,10 +5,15 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+concurrency:
+  group: tests-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-components:
     name: Test Changed Components
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -22,10 +27,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Set up GCC
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc
+      # GCC is pre-installed on ubuntu-latest — no setup needed
 
       - name: Make test runner executable
         run: chmod +x scripts/test-component.sh
@@ -43,8 +45,11 @@ jobs:
           echo "Changed files:"
           echo "$CHANGED_FILES"
 
-          # Match changes in either components/ or tests/
-          COMPONENTS=$(echo "$CHANGED_FILES" | grep -E '^(components|tests)/(c|java)/(C|J)[0-9]{2}/' | sed -E 's/^(components|tests)\///' | awk -F/ '{print $1"/"$2}' | sort -u || true)
+          COMPONENTS=$(echo "$CHANGED_FILES" \
+            | grep -iE '^(components|tests)/(c|java)/[CJ][0-9]{2}/' \
+            | sed -E 's/^(components|tests)\///' \
+            | awk -F/ '{print $1"/"$2}' \
+            | sort -u || true)
 
           if [ -z "$COMPONENTS" ]; then
             echo "No component source or test files modified."
@@ -64,20 +69,19 @@ jobs:
           FAILED=0
           while IFS= read -r item; do
             if [ -n "$item" ]; then
-              echo "--------------------------------------------------"
-              echo "Testing: $item"
-              echo "--------------------------------------------------"
-              if ! ./scripts/test-component.sh "$item"; then
-                echo "FAILED: $item"
+              echo "::group::Testing: $item"
+              if ! timeout 120 ./scripts/test-component.sh "$item"; then
+                echo "::error::FAILED: $item"
                 FAILED=1
               else
                 echo "PASSED: $item"
               fi
+              echo "::endgroup::"
             fi
           done <<< "${{ steps.detect-changes.outputs.components }}"
 
           if [ "$FAILED" -ne 0 ]; then
-            echo "Error: One or more regression test suites failed."
+            echo "::error::One or more regression test suites failed."
             exit 1
           fi
           echo "All affected components passed regression tests!"
@@ -86,3 +90,4 @@ jobs:
         if: steps.detect-changes.outputs.has_changes == 'false'
         run: |
           echo "Documentation or infrastructure changes only. No regression tests required."
+
