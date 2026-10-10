@@ -1,0 +1,33 @@
+# Build binaries and object files
+*.o
+*.obj
+*.exe
+*.out
+test_runner
+test_runner.exe
+
+# Java bytecode
+*.class
+*.jar
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Operating system artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE and Editor configurations
+.idea/
+.vscode/
+*.swp
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Maintainer and organizer materials
+docs/
+scripts/publish-issues.py
+scripts/delete_all_issues.py

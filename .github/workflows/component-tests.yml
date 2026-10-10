@@ -1,0 +1,88 @@
+name: Component Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test-components:
+    name: Test Changed Components
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up GCC
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc
+
+      - name: Make test runner executable
+        run: chmod +x scripts/test-component.sh
+
+      - name: Detect changed components
+        id: detect-changes
+        run: |
+          BASE_REF="origin/${{ github.base_ref }}"
+          if ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1; then
+            BASE_REF="HEAD~1"
+          fi
+          echo "Comparing against: $BASE_REF"
+
+          CHANGED_FILES=$(git diff --name-only "$BASE_REF" HEAD || true)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Match changes in either components/ or tests/
+          COMPONENTS=$(echo "$CHANGED_FILES" | grep -E '^(components|tests)/(c|java)/(C|J)[0-9]{2}/' | sed -E 's/^(components|tests)\///' | awk -F/ '{print $1"/"$2}' | sort -u || true)
+
+          if [ -z "$COMPONENTS" ]; then
+            echo "No component source or test files modified."
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Components to test:"
+            echo "$COMPONENTS"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "components<<EOF" >> $GITHUB_OUTPUT
+            echo "$COMPONENTS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run regression tests
+        if: steps.detect-changes.outputs.has_changes == 'true'
+        run: |
+          FAILED=0
+          while IFS= read -r item; do
+            if [ -n "$item" ]; then
+              echo "--------------------------------------------------"
+              echo "Testing: $item"
+              echo "--------------------------------------------------"
+              if ! ./scripts/test-component.sh "$item"; then
+                echo "FAILED: $item"
+                FAILED=1
+              else
+                echo "PASSED: $item"
+              fi
+            fi
+          done <<< "${{ steps.detect-changes.outputs.components }}"
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo "Error: One or more regression test suites failed."
+            exit 1
+          fi
+          echo "All affected components passed regression tests!"
+
+      - name: Non-component changes
+        if: steps.detect-changes.outputs.has_changes == 'false'
+        run: |
+          echo "Documentation or infrastructure changes only. No regression tests required."
