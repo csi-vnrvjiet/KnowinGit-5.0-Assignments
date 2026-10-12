@@ -1,6 +1,9 @@
 # KnowinGit 5.0
 
-Open-source contribution lab repository for KnowinGit 5.0, designed for second-year undergraduate engineering students.
+> [!IMPORTANT]
+> This repository is only for the participants of **KnowinGit 5.0** conducted by **CSI VNRVJIET**.
+
+Open-source contribution lab repository for KnowinGit 5.0 conducted by CSI VNRVJIET, designed for second-year undergraduate engineering students.
 
 The goal of this activity is to introduce students to the real-world workflow of open-source development: reading unfamiliar code, identifying reported bugs, making localized fixes, and opening standard GitHub Pull Requests with automated continuous integration (CI) testing.
 

@@ -1,5 +1,8 @@
 # Contributing to KnowinGit 5.0
 
+> [!IMPORTANT]
+> This repository is only for the participants of **KnowinGit 5.0** conducted by **CSI VNRVJIET**.
+
 Welcome! Whether you are participating in a contribution sprint or fixing a reported defect, this guide will walk you through our open-source contribution workflow.
 
 > **New to Git and GitHub?** Don't worry - this guide assumes zero prior experience. You do not need any local compilers (GCC or Java) installed. Just follow each step carefully.
