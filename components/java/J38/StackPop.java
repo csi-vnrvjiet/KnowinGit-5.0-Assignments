@@ -12,7 +12,7 @@ public class StackPop {
     public int pop() {
         if (top < 0) return -1;
         int val = data[top];
-        top -= 2;
+        top--;
         return val;
     }
 
